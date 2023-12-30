@@ -19,6 +19,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 Route::get('/', function () {
     return reponse()->json([
-        'message' => 'HI there, welcome to my first API'
+        'message' => 'HI there, welcome to my first API',
+        'all env' => config('app'),
     ]);
 });

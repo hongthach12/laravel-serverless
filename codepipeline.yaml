@@ -140,6 +140,7 @@ Resources:
                 ProjectName: !Ref CodeBuildProjectBuildAndDeployFeature
               InputArtifacts:
                 - Name: SourceCodeAsZip
+              # Set environment variables for the build
   PipelineArtifactsBucket:
     Type: AWS::S3::Bucket
     DeletionPolicy: Retain
@@ -277,7 +278,7 @@ Resources:
                   - "codebuild:BatchGetBuilds"
                 Resource:
                   # Uncomment the line below to enable the unit-tests
-                  # - !GetAtt CodeBuildProjectUnitTest.Arn
+                  - !GetAtt CodeBuildProjectUnitTest.Arn
                   # - !If
                   - !GetAtt CodeBuildProjectBuildAndDeployFeature.Arn
                   # - !If
@@ -412,6 +413,8 @@ Resources:
         EnvironmentVariables:
           - Name: SAM_TEMPLATE
             Value: ""
+          - Name: GIT_BRANCH
+            Value: !Ref FeatureGitBranch
       ServiceRole: !GetAtt CodeBuildServiceRole.Arn
       Source:
         Type: CODEPIPELINE
