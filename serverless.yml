@@ -1,0 +1,62 @@
+service: laravel
+
+provider:
+    name: aws
+    # The AWS region in which to deploy (us-east-1 is the default)
+    region: us-east-1
+    # Environment variables
+    environment:
+        APP_ENV: production # Or use ${sls:stage} if you want the environment to match the stage
+    # using runtime Amazon Linux 2023 (PHP 8.3)
+    iam:
+        role:
+            statements:
+                # Allow Lambda to read and write files in the S3 buckets
+                -   Effect: Allow
+                    Action: s3:*
+                    Resource:
+                        - !Sub '${Storage.Arn}' # the storage bucket
+                        - !Sub '${Storage.Arn}/*' # and everything inside
+package:
+    # Files and directories to exclude from deployment
+    patterns:
+        - '!node_modules/**'
+        - '!public/storage'
+        - '!resources/assets/**'
+        - '!storage/**'
+        - '!tests/**'
+resources:
+    Resources:
+        # Create our S3 storage bucket using CloudFormation
+        Storage:
+            Type: AWS::S3::Bucket
+            Properties:
+                BucketName: ${sls:stage}-bucker-lar-servlers
+functions:
+    # This function runs the Laravel website/API
+    web:
+        handler: Bref\LaravelBridge\Http\OctaneHandler
+        runtime: php-83
+        timeout: 28 # in seconds (API Gateway has a timeout of 29 seconds)
+        environment:
+            BREF_LOOP_MAX: 250
+            OCTANE_PERSIST_DATABASE_SESSIONS: 1
+            FILESYSTEM_DISK: s3
+            AWS_BUCKET: !Ref Storage
+
+        events:
+            - httpApi: '*'
+    # This function lets us run artisan commands in Lambda
+    artisan:
+        handler: artisan
+        runtime: php-83-console
+        timeout: 720 # in seconds
+        # Uncomment to also run the scheduler every minute
+        #events:
+        #    - schedule:
+        #          rate: rate(1 minute)
+        #          input: '"schedule:run"'
+
+plugins:
+    # We need to include the Bref plugin
+    - ./vendor/bref/bref
