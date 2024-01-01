@@ -48,6 +48,8 @@ return [
 
         'ses' => [
             'transport' => 'ses',
+            'region' => env('AWS_DEFAULT_REGION'),
+            'token' => env('AWS_SESSION_TOKEN'),
         ],
 
         'postmark' => [
