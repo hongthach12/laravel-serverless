@@ -74,13 +74,13 @@
     "WebLogGroup": {
       "Type": "AWS::Logs::LogGroup",
       "Properties": {
-        "LogGroupName": "/aws/lambda/laravel-qa-web"
+        "LogGroupName": "/aws/lambda/laravel-develop-web"
       }
     },
     "ArtisanLogGroup": {
       "Type": "AWS::Logs::LogGroup",
       "Properties": {
-        "LogGroupName": "/aws/lambda/laravel-qa-artisan"
+        "LogGroupName": "/aws/lambda/laravel-develop-artisan"
       }
     },
     "IamRoleLambdaExecution": {
@@ -109,7 +109,7 @@
                 "-",
                 [
                   "laravel",
-                  "qa",
+                  "develop",
                   "lambda"
                 ]
               ]
@@ -126,7 +126,7 @@
                   ],
                   "Resource": [
                     {
-                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/laravel-qa*:*"
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/laravel-develop*:*"
                     }
                   ]
                 },
@@ -137,7 +137,7 @@
                   ],
                   "Resource": [
                     {
-                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/laravel-qa*:*:*"
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/laravel-develop*:*:*"
                     }
                   ]
                 },
@@ -165,14 +165,28 @@
             "-",
             [
               "laravel",
-              "qa",
+              "develop",
               {
                 "Ref": "AWS::Region"
               },
               "lambdaRole"
             ]
           ]
-        }
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+              ]
+            ]
+          }
+        ]
       }
     },
     "WebLambdaFunction": {
@@ -182,22 +196,50 @@
           "S3Bucket": {
             "Ref": "ServerlessDeploymentBucket"
           },
-          "S3Key": "serverless/laravel/qa/1703935911108-2023-12-30T11:31:51.108Z/laravel.zip"
+          "S3Key": "serverless/laravel/develop/1704107101336-2024-01-01T11:05:01.336Z/laravel.zip"
         },
         "Handler": "Bref\\LaravelBridge\\Http\\OctaneHandler",
         "Runtime": "provided.al2",
-        "FunctionName": "laravel-qa-web",
+        "FunctionName": "laravel-develop-web",
         "MemorySize": 1024,
         "Timeout": 28,
         "Environment": {
           "Variables": {
             "APP_ENV": "production",
+            "POSTGRESQL_HOST": {
+              "Fn::GetAtt": [
+                "PostgreSqlRDSInstance",
+                "Endpoint.Address"
+              ]
+            },
+            "POSTGRESQL_PORT": {
+              "Fn::GetAtt": [
+                "PostgreSqlRDSInstance",
+                "Endpoint.Port"
+              ]
+            },
             "BREF_LOOP_MAX": "250",
             "OCTANE_PERSIST_DATABASE_SESSIONS": "1",
             "FILESYSTEM_DISK": "s3",
             "AWS_BUCKET": {
               "Ref": "Storage"
-            }
+            },
+            "DB_CONNECTION": "pgsql",
+            "DB_HOST": {
+              "Fn::GetAtt": [
+                "PostgreSqlRDSInstance",
+                "Endpoint.Address"
+              ]
+            },
+            "DB_PORT": {
+              "Fn::GetAtt": [
+                "PostgreSqlRDSInstance",
+                "Endpoint.Port"
+              ]
+            },
+            "DB_DATABASE": "develop_laravel",
+            "DB_USERNAME": "master",
+            "DB_PASSWORD": "password"
           }
         },
         "Role": {
@@ -206,8 +248,29 @@
             "Arn"
           ]
         },
+        "VpcConfig": {
+          "SecurityGroupIds": [
+            {
+              "Fn::GetAtt": [
+                "ServerlessSecurityGroup",
+                "GroupId"
+              ]
+            }
+          ],
+          "SubnetIds": [
+            {
+              "Ref": "ServerlessSubnetA"
+            },
+            {
+              "Ref": "ServerlessSubnetB"
+            },
+            {
+              "Ref": "ServerlessSubnetC"
+            }
+          ]
+        },
         "Layers": [
-          "arn:aws:lambda:us-east-1:534081306603:layer:php-83:13"
+          "arn:aws:lambda:us-east-1:534081306603:layer:php-82:57"
         ]
       },
       "DependsOn": [
@@ -221,16 +284,48 @@
           "S3Bucket": {
             "Ref": "ServerlessDeploymentBucket"
           },
-          "S3Key": "serverless/laravel/qa/1703935911108-2023-12-30T11:31:51.108Z/laravel.zip"
+          "S3Key": "serverless/laravel/develop/1704107101336-2024-01-01T11:05:01.336Z/laravel.zip"
         },
         "Handler": "artisan",
         "Runtime": "provided.al2",
-        "FunctionName": "laravel-qa-artisan",
+        "FunctionName": "laravel-develop-artisan",
         "MemorySize": 1024,
         "Timeout": 720,
         "Environment": {
           "Variables": {
-            "APP_ENV": "production"
+            "APP_ENV": "production",
+            "POSTGRESQL_HOST": {
+              "Fn::GetAtt": [
+                "PostgreSqlRDSInstance",
+                "Endpoint.Address"
+              ]
+            },
+            "POSTGRESQL_PORT": {
+              "Fn::GetAtt": [
+                "PostgreSqlRDSInstance",
+                "Endpoint.Port"
+              ]
+            },
+            "FILESYSTEM_DISK": "s3",
+            "AWS_BUCKET": {
+              "Ref": "Storage"
+            },
+            "DB_CONNECTION": "pgsql",
+            "DB_HOST": {
+              "Fn::GetAtt": [
+                "PostgreSqlRDSInstance",
+                "Endpoint.Address"
+              ]
+            },
+            "DB_PORT": {
+              "Fn::GetAtt": [
+                "PostgreSqlRDSInstance",
+                "Endpoint.Port"
+              ]
+            },
+            "DB_DATABASE": "develop_laravel",
+            "DB_USERNAME": "master",
+            "DB_PASSWORD": "password"
           }
         },
         "Role": {
@@ -239,8 +334,29 @@
             "Arn"
           ]
         },
+        "VpcConfig": {
+          "SecurityGroupIds": [
+            {
+              "Fn::GetAtt": [
+                "ServerlessSecurityGroup",
+                "GroupId"
+              ]
+            }
+          ],
+          "SubnetIds": [
+            {
+              "Ref": "ServerlessSubnetA"
+            },
+            {
+              "Ref": "ServerlessSubnetB"
+            },
+            {
+              "Ref": "ServerlessSubnetC"
+            }
+          ]
+        },
         "Layers": [
-          "arn:aws:lambda:us-east-1:534081306603:layer:php-83:13",
+          "arn:aws:lambda:us-east-1:534081306603:layer:php-82:57",
           "arn:aws:lambda:us-east-1:534081306603:layer:console:67"
         ]
       },
@@ -248,30 +364,30 @@
         "ArtisanLogGroup"
       ]
     },
-    "WebLambdaVersiond819vKYm8gZfzonh7WJgRhipLusu3VhWBI3ZGDjx06A": {
+    "WebLambdaVersionMJlJyzNhFFxR0PTEukuZ1lzo9WVjtJ9YZGpdn1iJK4": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "WebLambdaFunction"
         },
-        "CodeSha256": "YbXklU9+w4whWg3ozeF6KETnx5W0KvVLbe+lBEZmn1g="
+        "CodeSha256": "3757/HjHBH53mtVz3MXLxf3vYwCB6aF2luFMhxg+BYI="
       }
     },
-    "ArtisanLambdaVersionIwCGYZp5z3BpLmyetGFXzJ18IxIWpT5G2eXhUtwUAc": {
+    "ArtisanLambdaVersionqFuGkTwb5JfDaJxZuhmcNrx2eVslfrGqZLtwPMl8pc": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "ArtisanLambdaFunction"
         },
-        "CodeSha256": "YbXklU9+w4whWg3ozeF6KETnx5W0KvVLbe+lBEZmn1g="
+        "CodeSha256": "3757/HjHBH53mtVz3MXLxf3vYwCB6aF2luFMhxg+BYI="
       }
     },
     "HttpApi": {
       "Type": "AWS::ApiGatewayV2::Api",
       "Properties": {
-        "Name": "qa-laravel",
+        "Name": "develop-laravel",
         "ProtocolType": "HTTP"
       }
     },
@@ -366,7 +482,210 @@
     "Storage": {
       "Type": "AWS::S3::Bucket",
       "Properties": {
-        "BucketName": "qa-bucker-lar-servlers"
+        "BucketName": "develop-bucker-lar-servlers",
+        "CorsConfiguration": {
+          "CorsRules": [
+            {
+              "AllowedOrigins": [
+                "*"
+              ],
+              "AllowedHeaders": [
+                "*"
+              ],
+              "AllowedMethods": [
+                "GET",
+                "PUT",
+                "POST",
+                "HEAD"
+              ],
+              "MaxAge": 3000
+            }
+          ]
+        },
+        "LifecycleConfiguration": {
+          "Rules": [
+            {
+              "ExpirationInDays": 2,
+              "Prefix": "/tmp",
+              "Status": "Enabled"
+            }
+          ]
+        }
+      }
+    },
+    "PostgreSqlRDSInstance": {
+      "DependsOn": [
+        "ServerlessVPCGA"
+      ],
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "MasterUsername": "master",
+        "MasterUserPassword": "password",
+        "AllocatedStorage": 20,
+        "DBName": "develop_laravel",
+        "DBInstanceClass": "db.t4g.micro",
+        "VPCSecurityGroups": [
+          {
+            "Fn::GetAtt": [
+              "ServerlessSecurityGroup",
+              "GroupId"
+            ]
+          }
+        ],
+        "DBSubnetGroupName": {
+          "Ref": "ServerlessSubnetGroup"
+        },
+        "Engine": "postgres",
+        "PubliclyAccessible": false
+      }
+    },
+    "ServerlessInternetGateway": {
+      "Type": "AWS::EC2::InternetGateway",
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "ServerlessInternetGateway"
+          }
+        ]
+      }
+    },
+    "ServerlessSecurityGroup": {
+      "DependsOn": [
+        "ServerlessVPC"
+      ],
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "SecurityGroup for Serverless Functions",
+        "VpcId": {
+          "Ref": "ServerlessVPC"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 5432,
+            "ToPort": 5432,
+            "CidrIp": "10.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 80,
+            "ToPort": 80,
+            "CidrIp": "10.0.0.0/0"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "ServerlessSecurityGroup"
+          }
+        ]
+      }
+    },
+    "ServerlessVPC": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": "10.0.0.0/16",
+        "EnableDnsSupport": true,
+        "EnableDnsHostnames": true,
+        "InstanceTenancy": "default",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "ServerlessVPC"
+          }
+        ]
+      }
+    },
+    "ServerlessVPCGA": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Properties": {
+        "VpcId": {
+          "Ref": "ServerlessVPC"
+        },
+        "InternetGatewayId": {
+          "Ref": "ServerlessInternetGateway"
+        }
+      }
+    },
+    "ServerlessSubnetGroup": {
+      "Type": "AWS::RDS::DBSubnetGroup",
+      "Properties": {
+        "DBSubnetGroupDescription": "RDS Subnet Group",
+        "SubnetIds": [
+          {
+            "Ref": "ServerlessSubnetA"
+          },
+          {
+            "Ref": "ServerlessSubnetB"
+          },
+          {
+            "Ref": "ServerlessSubnetC"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "ServerlessSubnetGroup"
+          }
+        ]
+      }
+    },
+    "ServerlessSubnetA": {
+      "DependsOn": [
+        "ServerlessVPC"
+      ],
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "ServerlessVPC"
+        },
+        "AvailabilityZone": "us-east-1a",
+        "CidrBlock": "10.0.0.0/24",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "ServerlessSubnetA"
+          }
+        ]
+      }
+    },
+    "ServerlessSubnetB": {
+      "DependsOn": [
+        "ServerlessVPC"
+      ],
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "ServerlessVPC"
+        },
+        "AvailabilityZone": "us-east-1b",
+        "CidrBlock": "10.0.1.0/24",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "ServerlessSubnetB"
+          }
+        ]
+      }
+    },
+    "ServerlessSubnetC": {
+      "DependsOn": [
+        "ServerlessVPC"
+      ],
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "ServerlessVPC"
+        },
+        "AvailabilityZone": "us-east-1c",
+        "CidrBlock": "10.0.2.0/24",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "ServerlessSubnetC"
+          }
+        ]
       }
     }
   },
@@ -376,25 +695,25 @@
         "Ref": "ServerlessDeploymentBucket"
       },
       "Export": {
-        "Name": "sls-laravel-qa-ServerlessDeploymentBucketName"
+        "Name": "sls-laravel-develop-ServerlessDeploymentBucketName"
       }
     },
     "WebLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "WebLambdaVersiond819vKYm8gZfzonh7WJgRhipLusu3VhWBI3ZGDjx06A"
+        "Ref": "WebLambdaVersionMJlJyzNhFFxR0PTEukuZ1lzo9WVjtJ9YZGpdn1iJK4"
       },
       "Export": {
-        "Name": "sls-laravel-qa-WebLambdaFunctionQualifiedArn"
+        "Name": "sls-laravel-develop-WebLambdaFunctionQualifiedArn"
       }
     },
     "ArtisanLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "ArtisanLambdaVersionIwCGYZp5z3BpLmyetGFXzJ18IxIWpT5G2eXhUtwUAc"
+        "Ref": "ArtisanLambdaVersionqFuGkTwb5JfDaJxZuhmcNrx2eVslfrGqZLtwPMl8pc"
       },
       "Export": {
-        "Name": "sls-laravel-qa-ArtisanLambdaFunctionQualifiedArn"
+        "Name": "sls-laravel-develop-ArtisanLambdaFunctionQualifiedArn"
       }
     },
     "HttpApiId": {
@@ -403,7 +722,7 @@
         "Ref": "HttpApi"
       },
       "Export": {
-        "Name": "sls-laravel-qa-HttpApiId"
+        "Name": "sls-laravel-develop-HttpApiId"
       }
     },
     "HttpApiUrl": {
@@ -428,7 +747,7 @@
         ]
       },
       "Export": {
-        "Name": "sls-laravel-qa-HttpApiUrl"
+        "Name": "sls-laravel-develop-HttpApiUrl"
       }
     }
   }

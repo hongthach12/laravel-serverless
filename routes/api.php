@@ -18,8 +18,10 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 Route::get('/', function () {
-    return reponse()->json([
+    return response()->json([
         'message' => 'HI there, welcome to my first API',
         'all env' => config('app'),
+        'AWS_BUCKET' => env('AWS_BUCKET'),
+        'db' => config('database.connections.pgsql'),
     ]);
 });

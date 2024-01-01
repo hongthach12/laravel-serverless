@@ -1,0 +1,22 @@
+Type: AWS::S3::Bucket
+Properties:
+  BucketName: ${sls:stage}-bucker-lar-servlers
+  CorsConfiguration:
+    CorsRules:
+      -
+        AllowedOrigins:
+            - '*'
+        AllowedHeaders:
+            - '*'
+        AllowedMethods:
+            - GET
+            - PUT
+            - POST
+            - HEAD
+        MaxAge: 3000
+# Set lifecycle config
+  LifecycleConfiguration:
+      Rules:
+        - ExpirationInDays: 2
+          Prefix: '/tmp'
+          Status: Enabled
