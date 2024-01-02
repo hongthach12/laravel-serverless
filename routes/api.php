@@ -53,7 +53,6 @@ Route::get('/s3', function () {
 Route::get('/users', function () {
     \App\Models\User::factory()->create([
         'name' => 'Test User',
-        'email' => 'test@example.com',
     ]);
     return response()->json([
         'data' => \App\Models\User::all()
