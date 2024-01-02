@@ -83,6 +83,12 @@
         "LogGroupName": "/aws/lambda/laravel-develop-artisan"
       }
     },
+    "JobsWorkerLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/laravel-develop-jobsWorker"
+      }
+    },
     "IamRoleLambdaExecution": {
       "Type": "AWS::IAM::Role",
       "Properties": {
@@ -154,6 +160,55 @@
                       "Fn::Sub": "${Storage.Arn}/*"
                     }
                   ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "dynamodb:DescribeTable",
+                    "dynamodb:Query",
+                    "dynamodb:Scan",
+                    "dynamodb:GetItem",
+                    "dynamodb:PutItem",
+                    "dynamodb:UpdateItem",
+                    "dynamodb:DeleteItem"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "DynamoDBCache",
+                      "Arn"
+                    ]
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "sqs:SendMessage",
+                    "sqs:ChangeMessageVisibility"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "jobsQueueCEDBAE3E",
+                        "Arn"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "sqs:ReceiveMessage",
+                    "sqs:DeleteMessage",
+                    "sqs:GetQueueAttributes"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "jobsQueueCEDBAE3E",
+                        "Arn"
+                      ]
+                    }
+                  ]
                 }
               ]
             }
@@ -196,7 +251,7 @@
           "S3Bucket": {
             "Ref": "ServerlessDeploymentBucket"
           },
-          "S3Key": "serverless/laravel/develop/1704107101336-2024-01-01T11:05:01.336Z/laravel.zip"
+          "S3Key": "serverless/laravel/develop/1704165017046-2024-01-02T03:10:17.046Z/laravel.zip"
         },
         "Handler": "Bref\\LaravelBridge\\Http\\OctaneHandler",
         "Runtime": "provided.al2",
@@ -205,7 +260,7 @@
         "Timeout": 28,
         "Environment": {
           "Variables": {
-            "APP_ENV": "production",
+            "APP_ENV": "develop",
             "POSTGRESQL_HOST": {
               "Fn::GetAtt": [
                 "PostgreSqlRDSInstance",
@@ -218,9 +273,15 @@
                 "Endpoint.Port"
               ]
             },
-            "BREF_LOOP_MAX": "250",
-            "OCTANE_PERSIST_DATABASE_SESSIONS": "1",
+            "QUEUE_CONNECTION": "sqs",
+            "SQS_PREFIX": {
+              "Ref": "jobsQueueCEDBAE3E"
+            },
+            "SQS_QUEUE": {
+              "Ref": "jobsQueueCEDBAE3E"
+            },
             "FILESYSTEM_DISK": "s3",
+            "FILESYSTEM_DISK_PUBLIC": "s3",
             "AWS_BUCKET": {
               "Ref": "Storage"
             },
@@ -239,7 +300,15 @@
             },
             "DB_DATABASE": "develop_laravel",
             "DB_USERNAME": "master",
-            "DB_PASSWORD": "password"
+            "DB_PASSWORD": "password",
+            "CACHE_PREFIX": "cache",
+            "CACHE_DRIVER": "dynamodb",
+            "DYNAMODB_CACHE_TABLE": {
+              "Ref": "DynamoDBCache"
+            },
+            "LOG_CHANNEL": "stderr",
+            "BREF_LOOP_MAX": "250",
+            "OCTANE_PERSIST_DATABASE_SESSIONS": "1"
           }
         },
         "Role": {
@@ -284,16 +353,16 @@
           "S3Bucket": {
             "Ref": "ServerlessDeploymentBucket"
           },
-          "S3Key": "serverless/laravel/develop/1704107101336-2024-01-01T11:05:01.336Z/laravel.zip"
+          "S3Key": "serverless/laravel/develop/1704165017046-2024-01-02T03:10:17.046Z/laravel.zip"
         },
         "Handler": "artisan",
         "Runtime": "provided.al2",
         "FunctionName": "laravel-develop-artisan",
         "MemorySize": 1024,
-        "Timeout": 720,
+        "Timeout": 890,
         "Environment": {
           "Variables": {
-            "APP_ENV": "production",
+            "APP_ENV": "develop",
             "POSTGRESQL_HOST": {
               "Fn::GetAtt": [
                 "PostgreSqlRDSInstance",
@@ -306,7 +375,15 @@
                 "Endpoint.Port"
               ]
             },
+            "QUEUE_CONNECTION": "sqs",
+            "SQS_PREFIX": {
+              "Ref": "jobsQueueCEDBAE3E"
+            },
+            "SQS_QUEUE": {
+              "Ref": "jobsQueueCEDBAE3E"
+            },
             "FILESYSTEM_DISK": "s3",
+            "FILESYSTEM_DISK_PUBLIC": "s3",
             "AWS_BUCKET": {
               "Ref": "Storage"
             },
@@ -325,7 +402,13 @@
             },
             "DB_DATABASE": "develop_laravel",
             "DB_USERNAME": "master",
-            "DB_PASSWORD": "password"
+            "DB_PASSWORD": "password",
+            "CACHE_PREFIX": "cache",
+            "CACHE_DRIVER": "dynamodb",
+            "DYNAMODB_CACHE_TABLE": {
+              "Ref": "DynamoDBCache"
+            },
+            "LOG_CHANNEL": "stderr"
           }
         },
         "Role": {
@@ -364,24 +447,198 @@
         "ArtisanLogGroup"
       ]
     },
-    "WebLambdaVersionMJlJyzNhFFxR0PTEukuZ1lzo9WVjtJ9YZGpdn1iJK4": {
+    "JobsWorkerLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Ref": "ServerlessDeploymentBucket"
+          },
+          "S3Key": "serverless/laravel/develop/1704165017046-2024-01-02T03:10:17.046Z/laravel.zip"
+        },
+        "Handler": "Bref\\LaravelBridge\\Queue\\QueueHandler",
+        "Runtime": "provided.al2",
+        "FunctionName": "laravel-develop-jobsWorker",
+        "MemorySize": 1024,
+        "Timeout": 890,
+        "Environment": {
+          "Variables": {
+            "APP_ENV": "develop",
+            "POSTGRESQL_HOST": {
+              "Fn::GetAtt": [
+                "PostgreSqlRDSInstance",
+                "Endpoint.Address"
+              ]
+            },
+            "POSTGRESQL_PORT": {
+              "Fn::GetAtt": [
+                "PostgreSqlRDSInstance",
+                "Endpoint.Port"
+              ]
+            },
+            "QUEUE_CONNECTION": "sqs",
+            "SQS_PREFIX": {
+              "Ref": "jobsQueueCEDBAE3E"
+            },
+            "SQS_QUEUE": {
+              "Ref": "jobsQueueCEDBAE3E"
+            },
+            "FILESYSTEM_DISK": "s3",
+            "FILESYSTEM_DISK_PUBLIC": "s3",
+            "AWS_BUCKET": {
+              "Ref": "Storage"
+            },
+            "DB_CONNECTION": "pgsql",
+            "DB_HOST": {
+              "Fn::GetAtt": [
+                "PostgreSqlRDSInstance",
+                "Endpoint.Address"
+              ]
+            },
+            "DB_PORT": {
+              "Fn::GetAtt": [
+                "PostgreSqlRDSInstance",
+                "Endpoint.Port"
+              ]
+            },
+            "DB_DATABASE": "develop_laravel",
+            "DB_USERNAME": "master",
+            "DB_PASSWORD": "password",
+            "CACHE_PREFIX": "cache",
+            "CACHE_DRIVER": "dynamodb",
+            "DYNAMODB_CACHE_TABLE": {
+              "Ref": "DynamoDBCache"
+            },
+            "LOG_CHANNEL": "stderr"
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        },
+        "VpcConfig": {
+          "SecurityGroupIds": [
+            {
+              "Fn::GetAtt": [
+                "ServerlessSecurityGroup",
+                "GroupId"
+              ]
+            }
+          ],
+          "SubnetIds": [
+            {
+              "Ref": "ServerlessSubnetA"
+            },
+            {
+              "Ref": "ServerlessSubnetB"
+            },
+            {
+              "Ref": "ServerlessSubnetC"
+            }
+          ]
+        },
+        "Layers": [
+          "arn:aws:lambda:us-east-1:534081306603:layer:php-82:57"
+        ]
+      },
+      "DependsOn": [
+        "JobsWorkerLogGroup"
+      ]
+    },
+    "WebLambdaVersionFtLG7nVrCzH6M5dty9qq4AUn7YgraXyWGnzVzvLTI": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "WebLambdaFunction"
         },
-        "CodeSha256": "3757/HjHBH53mtVz3MXLxf3vYwCB6aF2luFMhxg+BYI="
+        "CodeSha256": "4RYYc/y1D++MUeAHy5d9wA2Cqkqgt5q8kUpXonrnD0w="
       }
     },
-    "ArtisanLambdaVersionqFuGkTwb5JfDaJxZuhmcNrx2eVslfrGqZLtwPMl8pc": {
+    "ArtisanLambdaVersionFkcgjNdHnYmo2osXMsvRnmOfdBfwsgc1hfOcMbDg": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "ArtisanLambdaFunction"
         },
-        "CodeSha256": "3757/HjHBH53mtVz3MXLxf3vYwCB6aF2luFMhxg+BYI="
+        "CodeSha256": "4RYYc/y1D++MUeAHy5d9wA2Cqkqgt5q8kUpXonrnD0w="
+      }
+    },
+    "JobsWorkerLambdaVersionx3g2Xjw6I5sgjCX4R2ZRQKuAQ9dUVPePshpV6mS73E": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "JobsWorkerLambdaFunction"
+        },
+        "CodeSha256": "4RYYc/y1D++MUeAHy5d9wA2Cqkqgt5q8kUpXonrnD0w="
+      }
+    },
+    "ArtisanEventsRuleSchedule1": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "ScheduleExpression": "rate(1 minute)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Input": "\"schedule:run\"",
+            "Arn": {
+              "Fn::GetAtt": [
+                "ArtisanLambdaFunction",
+                "Arn"
+              ]
+            },
+            "Id": "artisanSchedule"
+          }
+        ]
+      }
+    },
+    "ArtisanLambdaPermissionEventsRuleSchedule1": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "ArtisanLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "ArtisanEventsRuleSchedule1",
+            "Arn"
+          ]
+        }
+      }
+    },
+    "JobsWorkerEventSourceMappingSQSJobsQueueCEDBAE3E": {
+      "Type": "AWS::Lambda::EventSourceMapping",
+      "DependsOn": [
+        "IamRoleLambdaExecution"
+      ],
+      "Properties": {
+        "BatchSize": 1,
+        "MaximumBatchingWindowInSeconds": 0,
+        "EventSourceArn": {
+          "Fn::GetAtt": [
+            "jobsQueueCEDBAE3E",
+            "Arn"
+          ]
+        },
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "JobsWorkerLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Enabled": true,
+        "FunctionResponseTypes": [
+          "ReportBatchItemFailures"
+        ]
       }
     },
     "HttpApi": {
@@ -539,6 +796,29 @@
         "PubliclyAccessible": false
       }
     },
+    "DynamoDBCache": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "TableName": "laravel-develop-dynamodb-cache-table",
+        "BillingMode": "PAY_PER_REQUEST",
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "key",
+            "AttributeType": "S"
+          }
+        ],
+        "TimeToLiveSpecification": {
+          "AttributeName": "ttl",
+          "Enabled": true
+        },
+        "KeySchema": [
+          {
+            "AttributeName": "key",
+            "KeyType": "HASH"
+          }
+        ]
+      }
+    },
     "ServerlessInternetGateway": {
       "Type": "AWS::EC2::InternetGateway",
       "Properties": {
@@ -571,6 +851,12 @@
             "IpProtocol": "tcp",
             "FromPort": 80,
             "ToPort": 80,
+            "CidrIp": "10.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 443,
+            "ToPort": 443,
             "CidrIp": "10.0.0.0/0"
           }
         ],
@@ -687,6 +973,188 @@
           }
         ]
       }
+    },
+    "RouteTablePublic": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "ServerlessVPC"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "public-route"
+          }
+        ]
+      }
+    },
+    "RoutePublic": {
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": {
+          "Ref": "ServerlessInternetGateway"
+        },
+        "RouteTableId": {
+          "Ref": "RouteTablePublic"
+        }
+      }
+    },
+    "RouteTableAssociationSubnetA": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "RouteTablePublic"
+        },
+        "SubnetId": {
+          "Ref": "ServerlessSubnetA"
+        }
+      }
+    },
+    "RouteTableAssociationSubnetB": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "RouteTablePublic"
+        },
+        "SubnetId": {
+          "Ref": "ServerlessSubnetB"
+        }
+      }
+    },
+    "RouteTableAssociationSubnetC": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "RouteTablePublic"
+        },
+        "SubnetId": {
+          "Ref": "ServerlessSubnetC"
+        }
+      }
+    },
+    "ServerlessVPCEndPointDynamo": {
+      "Type": "AWS::EC2::VPCEndpoint",
+      "Properties": {
+        "ServiceName": "com.amazonaws.us-east-1.dynamodb",
+        "VpcId": {
+          "Ref": "ServerlessVPC"
+        },
+        "VpcEndpointType": "Gateway",
+        "RouteTableIds": [
+          {
+            "Ref": "RouteTablePublic"
+          }
+        ],
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": "*",
+              "Action": [
+                "dynamodb:*"
+              ],
+              "Resource": "*"
+            }
+          ]
+        }
+      }
+    },
+    "ServerlessVPCEndPointS3": {
+      "Type": "AWS::EC2::VPCEndpoint",
+      "Properties": {
+        "ServiceName": "com.amazonaws.us-east-1.s3",
+        "VpcId": {
+          "Ref": "ServerlessVPC"
+        },
+        "VpcEndpointType": "Gateway",
+        "RouteTableIds": [
+          {
+            "Ref": "RouteTablePublic"
+          }
+        ],
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": "*",
+              "Action": [
+                "s3:*"
+              ],
+              "Resource": "*"
+            }
+          ]
+        }
+      }
+    },
+    "ServerlessVPCEndPointSQS": {
+      "Type": "AWS::EC2::VPCEndpoint",
+      "Properties": {
+        "ServiceName": "com.amazonaws.us-east-1.sqs",
+        "VpcId": {
+          "Ref": "ServerlessVPC"
+        },
+        "VpcEndpointType": "Interface",
+        "PrivateDnsEnabled": true,
+        "SubnetIds": [
+          {
+            "Ref": "ServerlessSubnetA"
+          },
+          {
+            "Ref": "ServerlessSubnetB"
+          },
+          {
+            "Ref": "ServerlessSubnetC"
+          }
+        ],
+        "SecurityGroupIds": [
+          {
+            "Ref": "ServerlessSecurityGroup"
+          }
+        ],
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": "*",
+              "Action": [
+                "sqs:*"
+              ],
+              "Resource": "*"
+            }
+          ]
+        }
+      }
+    },
+    "jobsDlqD18CF374": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "MessageRetentionPeriod": 1209600,
+        "QueueName": "laravel-develop-jobs-dlq"
+      },
+      "UpdateReplacePolicy": "Delete",
+      "DeletionPolicy": "Delete"
+    },
+    "jobsQueueCEDBAE3E": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "QueueName": "laravel-develop-jobs",
+        "RedrivePolicy": {
+          "deadLetterTargetArn": {
+            "Fn::GetAtt": [
+              "jobsDlqD18CF374",
+              "Arn"
+            ]
+          },
+          "maxReceiveCount": 3
+        },
+        "VisibilityTimeout": 5340
+      },
+      "UpdateReplacePolicy": "Delete",
+      "DeletionPolicy": "Delete"
     }
   },
   "Outputs": {
@@ -701,7 +1169,7 @@
     "WebLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "WebLambdaVersionMJlJyzNhFFxR0PTEukuZ1lzo9WVjtJ9YZGpdn1iJK4"
+        "Ref": "WebLambdaVersionFtLG7nVrCzH6M5dty9qq4AUn7YgraXyWGnzVzvLTI"
       },
       "Export": {
         "Name": "sls-laravel-develop-WebLambdaFunctionQualifiedArn"
@@ -710,10 +1178,19 @@
     "ArtisanLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "ArtisanLambdaVersionqFuGkTwb5JfDaJxZuhmcNrx2eVslfrGqZLtwPMl8pc"
+        "Ref": "ArtisanLambdaVersionFkcgjNdHnYmo2osXMsvRnmOfdBfwsgc1hfOcMbDg"
       },
       "Export": {
         "Name": "sls-laravel-develop-ArtisanLambdaFunctionQualifiedArn"
+      }
+    },
+    "JobsWorkerLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "JobsWorkerLambdaVersionx3g2Xjw6I5sgjCX4R2ZRQKuAQ9dUVPePshpV6mS73E"
+      },
+      "Export": {
+        "Name": "sls-laravel-develop-JobsWorkerLambdaFunctionQualifiedArn"
       }
     },
     "HttpApiId": {
@@ -748,6 +1225,27 @@
       },
       "Export": {
         "Name": "sls-laravel-develop-HttpApiUrl"
+      }
+    },
+    "jobsQueueArnA5A2FF7E": {
+      "Description": "ARN of the \"jobs\" SQS queue.",
+      "Value": {
+        "Fn::GetAtt": [
+          "jobsQueueCEDBAE3E",
+          "Arn"
+        ]
+      }
+    },
+    "jobsQueueUrl573F5B7A": {
+      "Description": "URL of the \"jobs\" SQS queue.",
+      "Value": {
+        "Ref": "jobsQueueCEDBAE3E"
+      }
+    },
+    "jobsDlqUrl2C7FA9D4": {
+      "Description": "URL of the \"jobs\" SQS dead letter queue.",
+      "Value": {
+        "Ref": "jobsDlqD18CF374"
       }
     }
   }

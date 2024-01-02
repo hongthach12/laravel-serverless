@@ -3,9 +3,10 @@ Type: AWS::RDS::DBInstance
 Properties:
   MasterUsername: ${self:custom.USERNAME}
   MasterUserPassword: ${self:custom.PASSWORD}
+  # authentication type is password and IAM role
   AllocatedStorage: 20
   DBName: ${self:custom.DB_NAME}
-  DBInstanceClass: db.t4g.micro
+  DBInstanceClass: ${self:custom.DB_INSTANCE_CLASS}
   # attach to VPC
   VPCSecurityGroups:
   - !GetAtt ServerlessSecurityGroup.GroupId

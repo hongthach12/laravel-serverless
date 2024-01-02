@@ -13,6 +13,10 @@ Properties:
       FromPort: 80
       ToPort: 80
       CidrIp: "10.0.0.0/0"
+    - IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      CidrIp: "10.0.0.0/0"
   Tags: 
     - 
       Key: "Name"

@@ -17,7 +17,7 @@ phases:
   build:
     commands:
       - echo "Build ${GIT_BRANCH}"
-      - . ./assume-role.sh ${PIPELINE_EXECUTION_ROLE} feature-deploy
+      # - . ./assume-role.sh ${PIPELINE_EXECUTION_ROLE} feature-deploy
       - php composer.phar install
       - serverless deploy --stage ${GIT_BRANCH}
       # - sam build --use-container --template ${SAM_TEMPLATE}

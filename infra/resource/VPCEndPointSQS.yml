@@ -1,0 +1,21 @@
+# create vpc endpoint to access sqs
+Type: AWS::EC2::VPCEndpoint
+Properties:
+  ServiceName: "com.amazonaws.${self:provider.region}.sqs"
+  VpcId: !Ref ServerlessVPC
+  VpcEndpointType: Interface
+  PrivateDnsEnabled: true
+  SubnetIds:
+    - !Ref ServerlessSubnetA
+    - !Ref ServerlessSubnetB
+    - !Ref ServerlessSubnetC
+  SecurityGroupIds:
+    - !Ref ServerlessSecurityGroup
+  PolicyDocument:
+    Version: "2012-10-17"
+    Statement:
+      - Effect: Allow
+        Principal: "*"
+        Action:
+          - "sqs:*"
+        Resource: "*"

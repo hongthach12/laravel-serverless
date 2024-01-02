@@ -1,0 +1,16 @@
+# create vpc endpoint to access dynamodb
+Type: AWS::EC2::VPCEndpoint
+Properties:
+  ServiceName: "com.amazonaws.${self:provider.region}.s3"
+  VpcId: !Ref ServerlessVPC
+  VpcEndpointType: Gateway
+  RouteTableIds:
+    - !Ref RouteTablePublic
+  PolicyDocument:
+    Version: "2012-10-17"
+    Statement:
+      - Effect: Allow
+        Principal: "*"
+        Action:
+          - "s3:*"
+        Resource: "*"

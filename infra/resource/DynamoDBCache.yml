@@ -1,0 +1,13 @@
+Type: AWS::DynamoDB::Table
+Properties:
+  TableName: ${self:custom.SERVICE_NAME}-${sls:stage}-dynamodb-cache-table
+  BillingMode: PAY_PER_REQUEST
+  AttributeDefinitions:
+    -   AttributeName: key
+        AttributeType: S
+  TimeToLiveSpecification: # deletes cache keys automatically based on a ttl field which contains a timestamp
+    AttributeName: ttl
+    Enabled: true
+  KeySchema:
+    -   AttributeName: key
+        KeyType: HASH
