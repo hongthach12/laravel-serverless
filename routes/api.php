@@ -58,3 +58,10 @@ Route::get('/users', function () {
         'data' => \App\Models\User::all()
     ]);
 });
+
+
+Route::get('/test', function () {
+    return response()->json([
+        'test' => 'test'
+    ]);
+});
